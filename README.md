@@ -15,4 +15,4 @@ docker compose command : docker-compose up --build
 
 Folder structure as per my dockerfile and docker-compose : docker-example\moe-php-mysql-demo\www>
 
-if you face a problem like faild to build the project use:  docker rm -f $(docker ps -a -q) to remove all containers and 
+if you face a problem like faild to build the project use:  docker rm -f $(docker ps -a -q) to remove all containers and  docker rmi $(docker images -a -q) for images
