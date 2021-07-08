@@ -9,7 +9,7 @@ open source administration tool for MySQL: phpMyAdmin
 
 build a image : docker build . -t amakundu/moe-php-mysql-demo:1.0.0
 
-Docker run command : docker run -d -it -p 30001:80 --name "moe-php-mysql-app" amakundu/moe-php-mysql-demo:1.0.0
+Docker run command : docker run -d -it -p 30001:80 --name "moe-php-mysql-app" -v "$(pwd):/var/www/html" amakundu/moe-php-mysql-demo:1.1.0
 
 docker compose command : docker-compose up -d --build
 
