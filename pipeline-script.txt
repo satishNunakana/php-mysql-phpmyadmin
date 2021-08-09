@@ -1,0 +1,157 @@
+currentBuild.displayName = "phpApplication-#"+currentBuild.number
+
+pipeline {
+    
+    environment { 
+        registry = "navjitkaur/php"  
+        registryCredential = 'dockerhub'  
+        dockerImage = '' 
+    }
+    
+    agent any
+    
+    stages {
+        stage('Cloning Git') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '${Branch}']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/NavjitK/phpApplication.git']]])
+            }
+        }
+        
+        stage('Static Code Analysis') { 
+            steps { 
+                script {
+                    try {
+                          sh 'phpcs ${WORKSPACE} --generator=HTML > report.html'
+                    } 
+                    catch (err) {
+                        echo err.getMessage()
+                    }
+                }
+            }
+        }
+        
+        stage('Static Analysis Report') {
+            steps {
+                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '', reportFiles: 'report.html', reportName: 'Static Analysis Report', reportTitles: ''])
+            }
+        }
+        
+        stage('Docker compose') {
+            steps {
+                emailext mimeType: 'text/html',
+                subject: "[Jenkins]${currentBuild.fullDisplayName}",
+                to: "shashikant.verma@testingxperts.com",
+                body: """Please go to console output of ${BUILD_URL}input to approve or Reject"""
+
+                input(id: 'Proceed1', message: 'Promote build?', parameters: [[$class: 'BooleanParameterDefinition', defaultValue: true, 
+                description: '', name: 'Please confirm you agree with this']])
+
+                sh "sudo docker-compose up -d --build" 
+            }
+        }
+        stage('remove dangling images') {
+            steps {
+                sh "sudo docker images -q -f dangling=true | xargs --no-run-if-empty docker rmi"
+                
+            }
+        }
+        
+        stage('Jmeter Test') {
+            steps {
+                sh '''cd /home/ubuntu/apache-jmeter-5.4.1/bin
+                sh jmeter.sh -Jjmeter.save.saveservice.output_format=xml -n -t /home/ubuntu/apache-jmeter-5.4.1/bin/demo1.jmx -l /home/ubuntu/apache-jmeter-5.4.1/bin/report.jtl '''
+
+            }
+        }
+        
+        stage('Jmeter Publish') {
+            steps { 
+                perfReport filterRegex: '', showTrendGraphs: true, sourceDataFiles: '/home/ubuntu/apache-jmeter-5.4.1/bin/report.jtl'
+            }
+        }
+       
+        stage('Selenium testing with Devicefarm') {
+            steps {
+                dir("selenium"){
+                    sh "sudo mvn test"
+                }
+            }
+        }
+        
+        /*stage('Selenium testing with Cross Browser') {
+            steps {
+                dir("CrossBrowserTesting"){
+                    sh "sudo mvn test"
+                }
+            }
+        }*/
+        
+        stage('untagging the images') {
+            steps {
+                 sh  """ 
+                        
+                        sudo docker tag demo-pipeline-php_php:latest demo-pipeline-php_php:$BUILD_NUMBER 
+                        sudo docker tag mysql:5.7 mysql:$BUILD_NUMBER
+                        sudo docker tag phpmyadmin/phpmyadmin:4.7 phpmyadmin/phpmyadmin:$BUILD_NUMBER
+                        sudo docker tag php:7.2-apache php:$BUILD_NUMBER
+                        
+                        sudo docker rmi demo-pipeline-php_php:latest
+                        sudo docker rmi mysql:5.7
+                        sudo docker rmi phpmyadmin/phpmyadmin:4.7
+                        sudo docker rmi php:7.2-apache
+                     """
+            }
+        }
+        
+        stage('upload to nexus') {
+            steps {
+                sh """
+                    sudo docker tag demo-pipeline-php_php:$BUILD_NUMBER 13.59.111.51:8083/repository/php_mysql_app/demo-pipeline-php_php:$BUILD_NUMBER
+                    sudo docker tag mysql:$BUILD_NUMBER 13.59.111.51:8083/repository/php_mysql_app/mysql:$BUILD_NUMBER
+                    sudo docker tag phpmyadmin/phpmyadmin:$BUILD_NUMBER 13.59.111.51:8083/repository/php_mysql_app/phpmyadmin/phpmyadmin:$BUILD_NUMBER
+                    
+                    
+                    sudo docker login -u admin -p root 13.59.111.51:8083
+                    sudo docker push 13.59.111.51:8083/repository/php_mysql_app/demo-pipeline-php_php:$BUILD_NUMBER 
+                    sudo docker push 13.59.111.51:8083/repository/php_mysql_app/mysql:$BUILD_NUMBER 
+                    sudo docker push 13.59.111.51:8083/repository/php_mysql_app/phpmyadmin/phpmyadmin:$BUILD_NUMBER 
+                    
+                """
+            }
+        }
+        
+        stage('dangling images') {
+            steps {
+                sh """
+                docker images -q -f dangling=true | xargs --no-run-if-empty docker rmi
+                """
+            }
+        }
+        
+        stage('Slack Notification') {
+            steps {
+                slackSend channel: '#demo-project', 
+                color: 'good', 
+                message: 'build successful', 
+                teamDomain: 'txjenkins', 
+                tokenCredentialId: 'slack_Notifications', 
+                username: 'jenkins'
+            }
+        }
+    }
+    
+    post {
+        success {
+            slackSend (color: '#00FF00', message: currentBuild.displayName + " " + "Build succeeded!", channel: "#demo-project")
+        }
+        unstable {
+            slackSend (color: '#FFFE89', message: currentBuild.displayName + " " + "Build was unstable!", channel: "#demo-project")
+        }
+        failure {
+            slackSend (color: '#FF0000', message: currentBuild.displayName + " " + "Build Failed", channel: "#demo-project")
+        }
+        changed {
+            slackSend (color: '#D4DADF', message: currentBuild.displayName + " " + "Changed", channel: "#demo-project")
+        } 
+    }
+}
