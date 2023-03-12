@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.0
+-- version 4.7.9
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jul 02, 2021 at 07:51 AM
--- Server version: 10.4.19-MariaDB
--- PHP Version: 7.3.28
+-- Host: mysql-app: 3306
+-- Generation Time: Mar 12, 2023 at 12:23 PM
+-- Server version: 5.7.41
+-- PHP Version: 7.2.2
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -18,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `demo`
+-- Database: `demo_db`
 --
 
 -- --------------------------------------------------------
@@ -39,10 +40,9 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`id`, `name`, `address`, `salary`) VALUES
-(1, 'satish', 'Bangalore', 10000),
-(2, 'Srinivas', 'Hyderabad', 20000),
-(3, 'Sashi', 'Bangalore', 30000),
-(4, 'Sandeep', 'Dehradun', 40000);
+(1, 'Satish Kumar Nunakana', 'Bangalore', 1000000),
+(2, 'TestUser', 'Hyderabad', 20000000),
+(3, 'DemoUser', 'Bangalore', 3000000);
 
 --
 -- Indexes for dumped tables
@@ -62,7 +62,7 @@ ALTER TABLE `employees`
 -- AUTO_INCREMENT for table `employees`
 --
 ALTER TABLE `employees`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
